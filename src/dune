@@ -1,0 +1,5 @@
+(library
+ (name fdb)
+ (public_name fdb)
+ (libraries ctypes.foreign bigarray)
+ (ocamlopt_flags (-cclib -lfdb_c)))

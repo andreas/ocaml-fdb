@@ -1,0 +1,119 @@
+type bigstring =
+  ( char
+  , CamlinternalBigarray.int8_unsigned_elt
+  , CamlinternalBigarray.c_layout )
+  Bigarray.Array1.t
+
+module type IO = sig
+  type +'a t
+
+  type 'a u
+
+  val return : 'a -> 'a t
+
+  val map : 'a t -> f:('a -> 'b) -> 'b t
+
+  val bind : 'a t -> f:('a -> 'b t) -> 'b t
+
+  val detach : (unit -> 'a) -> 'a t
+
+  val create : unit -> 'a u
+
+  val fill : 'a u -> 'a -> unit
+
+  val read : 'a u -> 'a t
+end
+
+module Make (Io : IO) : sig
+  type 'a io = 'a Io.t
+
+  module Error : sig
+    type t
+
+    val to_string : t -> string
+
+    val error_code : t -> int
+  end
+
+  type 'a or_error = ('a, Error.t) result
+
+  module StreamingMode : sig
+    type t =
+      | Iterator of int
+      | Small
+      | Medium
+      | Large
+      | Serial
+      | Want_all
+      | Exact
+
+    val to_int : t -> int
+  end
+
+  module KeyValue : sig
+    type t
+
+    val key : t -> string
+
+    val value : t -> bigstring
+  end
+
+  module RangeResult : sig
+    type t
+
+    val length : t -> int
+
+    val get : t -> int -> KeyValue.t
+
+    val tail : t -> (unit -> t or_error io) option
+  end
+
+  module Transaction : sig
+    type t
+
+    val get : ?snapshot:bool -> t -> key:string -> bigstring option or_error io
+
+    val get_range :
+         ?limit:int
+      -> ?target_bytes:int
+      -> ?snapshot:bool
+      -> ?reverse:bool
+      -> t
+      -> mode:StreamingMode.t
+      -> first_key:string
+      -> last_key:string
+      -> RangeResult.t or_error io
+
+    val set : t -> key:string -> value:bigstring -> unit
+
+    val commit : t -> unit or_error io
+
+    val commit_with_retry : t -> f:(t -> 'a or_error io) -> 'a or_error io
+  end
+
+  module Database : sig
+    type t
+
+    val create : t -> string -> t or_error io
+
+    val transaction : t -> Transaction.t or_error
+
+    val with_tx : t -> f:(Transaction.t -> 'a or_error io) -> 'a or_error io
+  end
+
+  module Cluster : sig
+    type t
+
+    val create : string option -> t or_error io
+  end
+
+  val run : unit -> unit
+
+  val stop : unit -> unit io
+
+  val open_database :
+       ?cluster_file:string
+    -> ?database_name:string
+    -> unit
+    -> Database.t or_error io
+end
