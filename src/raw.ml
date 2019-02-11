@@ -29,19 +29,7 @@ let fdb_transaction_option = int
 let fdb_transaction_t = ptr void
 
 (* Key value *)
-type fdb_key_value
-
-let fdb_key_value_t : fdb_key_value structure typ = structure "fdb_key_value"
-
-let fdbkv_key = field fdb_key_value_t "key" (ptr char)
-
-let fdbkv_key_length = field fdb_key_value_t "key_length" int
-
-let fdbkv_value = field fdb_key_value_t "value" (ptr char)
-
-let fdbkv_value_length = field fdb_key_value_t "value_length" int
-
-let () = seal fdb_key_value_t
+module Key_value = Stubs.Key_value(Stubs_type)
 
 (* Top-level functions *)
 let select_api_version =
@@ -230,7 +218,7 @@ let future_get_string_array =
 let future_get_key_value_array =
   foreign "fdb_future_get_keyvalue_array"
     ( fdb_future_t
-    @-> ptr (ptr_opt fdb_key_value_t)
+    @-> ptr (ptr_opt Key_value.t)
     @-> ptr int @-> ptr fdb_bool_t @-> returning fdb_error_t )
 
 (* Errors *)
