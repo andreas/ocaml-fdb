@@ -1,5 +1,30 @@
 (library
+  (public_name fdb.stubs)
+  (name stubs)
+  (modules stubs)
+  (libraries ctypes.stubs ctypes.foreign))
+
+(executable
+ (name stubs_c_gen)
+ (modules stubs_c_gen)
+ (libraries stubs ctypes.stubs ctypes))
+
+(rule (with-stdout-to "stubs_ml_gen.c" (run "./stubs_c_gen.exe")))
+
+(rule
+ (targets stubs_ml_gen.exe)
+ (deps    (:stubs_ml_gen ./stubs_ml_gen.c))
+ (action (bash "\
+%{cc} %{stubs_ml_gen} \
+  -I `dirname %{lib:ctypes:ctypes_cstubs_internals.h}` \
+  -I %{ocaml_where} -o %{targets}")))
+
+(rule (with-stdout-to "stubs_type.ml" (run "./stubs_ml_gen.exe")))
+
+(library
  (name fdb)
  (public_name fdb)
- (libraries ctypes.foreign bigarray)
- (ocamlopt_flags (-cclib -lfdb_c)))
+ (modules raw fdb stubs_type)
+ (libraries fdb.stubs ctypes.stubs ctypes.foreign bigarray)
+ (ocamlopt_flags (-cclib -lfdb_c))
+ (flags (:standard -w -9-27)))

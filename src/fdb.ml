@@ -102,21 +102,21 @@ module Make (Io : IO) = struct
   end
 
   module KeyValue = struct
-    type t = (Raw.fdb_key_value, [`Struct]) structured
+    type t = (Raw.Key_value.t, [`Struct]) structured
 
     let key t =
-      let length = getf t Raw.fdbkv_key_length in
-      let key_ptr = getf t Raw.fdbkv_key in
+      let length = getf t Raw.Key_value.fdbkv_key_length in
+      let key_ptr = getf t Raw.Key_value.fdbkv_key in
       string_from_ptr key_ptr ~length
 
     let value t =
-      let length = getf t Raw.fdbkv_value_length in
-      let value_ptr = getf t Raw.fdbkv_value in
+      let length = getf t Raw.Key_value.fdbkv_value_length in
+      let value_ptr = getf t Raw.Key_value.fdbkv_value in
       bigarray_of_ptr array1 length Bigarray.char value_ptr
   end
 
   module RangeResult = struct
-    type t = {head: Raw.fdb_key_value structure CArray.t; tail: tail}
+    type t = {head: Raw.Key_value.t structure CArray.t; tail: tail}
 
     and tail = (unit -> t or_error io) option
 
@@ -166,7 +166,7 @@ module Make (Io : IO) = struct
       Future.to_io future
       >>=? fun future ->
       let finalise _ = Raw.future_destroy future in
-      let result_ptr = allocate ~finalise (ptr_opt Raw.fdb_key_value_t) None in
+      let result_ptr = allocate ~finalise (ptr_opt Raw.Key_value.t) None in
       let length_ptr = allocate int 0 in
       let more_ptr = allocate int 0 in
       let error =
