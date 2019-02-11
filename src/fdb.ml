@@ -101,7 +101,7 @@ module Make (Io : IO) = struct
       | Serial -> 4
   end
 
-  module KeyValue = struct
+  module Key_value = struct
     type t = (Raw.Key_value.t, [`Struct]) structured
 
     let key t =
@@ -115,7 +115,7 @@ module Make (Io : IO) = struct
       bigarray_of_ptr array1 length Bigarray.char value_ptr
   end
 
-  module RangeResult = struct
+  module Range_result = struct
     type t = {head: Raw.Key_value.t structure CArray.t; tail: tail}
 
     and tail = (unit -> t or_error io) option
@@ -181,10 +181,10 @@ module Make (Io : IO) = struct
               Some
                 (fun () ->
                   let kv = CArray.get head (CArray.length head - 1) in
-                  let first_key' = KeyValue.key kv in
+                  let first_key' = Key_value.key kv in
                   get_range ~snapshot ~reverse t ~mode ~first_key:first_key' ~last_key )
           in
-          return (Ok {RangeResult.head; tail})
+          return (Ok {Range_result.head; tail})
       | 0, None ->
           failwith "fdb_future_get_value returned 0 error but pointer is null"
       | err, _ when err <> 0 -> return (Error error)

@@ -50,7 +50,7 @@ module Make (Io : IO) : sig
     val to_int : t -> int
   end
 
-  module KeyValue : sig
+  module Key_value : sig
     type t
 
     val key : t -> string
@@ -58,12 +58,12 @@ module Make (Io : IO) : sig
     val value : t -> bigstring
   end
 
-  module RangeResult : sig
+  module Range_result : sig
     type t
 
     val length : t -> int
 
-    val get : t -> int -> KeyValue.t
+    val get : t -> int -> Key_value.t
 
     val tail : t -> (unit -> t or_error io) option
   end
@@ -82,7 +82,7 @@ module Make (Io : IO) : sig
       -> mode:StreamingMode.t
       -> first_key:string
       -> last_key:string
-      -> RangeResult.t or_error io
+      -> Range_result.t or_error io
 
     val set : t -> key:string -> value:bigstring -> unit
 
