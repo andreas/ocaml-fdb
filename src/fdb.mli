@@ -91,6 +91,8 @@ module Make (Io : IO) : sig
 
     val get_bigstring : ?snapshot:bool -> t -> key:string -> bigstring option or_error io
 
+    val get_key : ?snapshot:bool -> t -> key_selector:Key_selector.t -> string or_error io
+
     val get_range :
          ?limit:int
       -> ?target_bytes:int

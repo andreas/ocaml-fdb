@@ -190,6 +190,23 @@ module Make (Io : IO) = struct
       | None -> None
       | Some bs -> Some (Bigstringaf.to_string bs)
 
+    let get_key ?(snapshot = false) t ~key_selector =
+      let snapshot_flag = bool_to_int snapshot in
+      let key = key_selector.Key_selector.key in
+      let or_equal_flag = bool_to_int key_selector.or_equal in
+      Raw.transaction_get_key t key (String.length key) or_equal_flag key_selector.offset snapshot_flag
+      |> Future.to_io
+      >>=? fun future ->
+      let value_ptr = allocate string "" in
+      let length_ptr = allocate int 0 in
+      let error =
+        Raw.future_get_key future value_ptr length_ptr
+      in
+      let finaliser _ =
+        Raw.future_destroy future
+      in
+      Io.return (safe_deref value_ptr error ~finaliser)
+
     let rec get_range ?(limit = 0) ?(target_bytes = 0) ?(snapshot = false)
         ?(reverse = false) t ~mode ~first_key ~last_key =
       let snapshot_flag = if snapshot then 1 else 0 in
