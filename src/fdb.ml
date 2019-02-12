@@ -110,6 +110,20 @@ module Make (Io : IO) = struct
       | Medium -> 2
       | Large -> 3
       | Serial -> 4
+
+    let iterator () = Iterator 1
+
+    let small = Small
+
+    let medium = Medium
+
+    let large = Large
+
+    let serial = Serial
+
+    let want_all = Want_all
+
+    let exact = Exact
   end
 
   module Key_value = struct

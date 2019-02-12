@@ -38,16 +38,21 @@ module Make (Io : IO) : sig
   type 'a or_error = ('a, Error.t) result
 
   module StreamingMode : sig
-    type t =
-      | Iterator of int
-      | Small
-      | Medium
-      | Large
-      | Serial
-      | Want_all
-      | Exact
+    type t
 
-    val to_int : t -> int
+    val iterator : unit -> t
+
+    val small : t
+
+    val medium : t
+
+    val large : t
+
+    val serial : t
+
+    val want_all : t
+
+    val exact : t
   end
 
   module Key_value : sig
