@@ -47,7 +47,13 @@ module Make (Io : IO) = struct
 
   let check_error error = if error <> 0 then failwith (Raw.get_error error)
 
-  let safe_deref ptr error = if error <> 0 then Error error else Ok !@ptr
+  let safe_deref ptr error ~finaliser =
+    if error <> 0 then Error error
+    else begin
+      let value = !@ptr in
+      Gc.finalise finaliser value;
+      Ok value
+    end
 
   let bool_to_int b = if b then 1 else 0
 
@@ -64,13 +70,16 @@ module Make (Io : IO) = struct
       if error <> 0 then Io.fill ivar (Error error) ;
       Io.read ivar
 
-    let extract_value t ~f =
+    let extract_value ?(deps=[]) t ~f =
       to_io t
       >>=? fun t ->
-      let finalise t_ptr = Raw.future_destroy !@t_ptr in
-      let value_ptr = allocate ~finalise (ptr void) null in
+      let finaliser t_ptr =
+        Sys.opaque_identity ignore(deps);
+        Raw.future_destroy t_ptr
+      in
+      let value_ptr = allocate (ptr void) null in
       let error = f t value_ptr in
-      return (safe_deref value_ptr error)
+      return (safe_deref value_ptr error ~finaliser)
   end
 
   module Error = struct
@@ -248,13 +257,15 @@ module Make (Io : IO) = struct
 
     let create cluster name =
       Raw.database_create cluster name 2
-      |> Future.extract_value ~f:Raw.future_get_database
+      |> Future.extract_value ~deps:[cluster] ~f:Raw.future_get_database
 
     let transaction t =
-      let finalise t_ptr = Raw.transaction_destroy !@t_ptr in
-      let transaction_ptr = allocate ~finalise (ptr void) null in
+      let finaliser t_ptr = 
+        Raw.transaction_destroy t_ptr
+      in
+      let transaction_ptr = allocate (ptr void) null in
       let error = Raw.transaction_create t transaction_ptr in
-      safe_deref transaction_ptr error
+      safe_deref transaction_ptr error ~finaliser
 
     let with_tx t ~f =
       return (transaction t) >>=? fun tx -> Transaction.commit_with_retry tx ~f
