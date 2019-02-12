@@ -55,7 +55,9 @@ module Make (Io : IO) : sig
 
     val key : t -> string
 
-    val value : t -> bigstring
+    val value : t -> string
+
+    val value_bigstring : t -> bigstring
   end
 
   module Range_result : sig

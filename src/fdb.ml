@@ -112,6 +112,11 @@ module Make (Io : IO) = struct
     let value t =
       let length = getf t Raw.Key_value.fdbkv_value_length in
       let value_ptr = getf t Raw.Key_value.fdbkv_value in
+      string_from_ptr value_ptr ~length
+
+    let value_bigstring t =
+      let length = getf t Raw.Key_value.fdbkv_value_length in
+      let value_ptr = getf t Raw.Key_value.fdbkv_value in
       bigarray_of_ptr array1 length Bigarray.char value_ptr
   end
 
