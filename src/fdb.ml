@@ -132,6 +132,25 @@ module Make (Io : IO) = struct
     let tail t = t.tail
   end
 
+  module Key_selector = struct
+    type t = {key: string; or_equal: bool; offset: int}
+
+    let create ~key ~or_equal ~offset =
+      { key; or_equal; offset }
+
+    let first_greater_than ?(offset = 0) key =
+      {key; or_equal= false; offset}
+
+    let first_greater_or_equal ?(offset = 0) key =
+      {key; or_equal= true; offset}
+
+    let last_less_than ?(offset = 0) key =
+      {key; or_equal= false; offset}
+
+    let last_less_or_equal ?(offset = 0) key =
+      {key; or_equal= true; offset}
+  end
+
   module Transaction = struct
     type t = unit ptr
 

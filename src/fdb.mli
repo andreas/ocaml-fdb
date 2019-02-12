@@ -70,6 +70,20 @@ module Make (Io : IO) : sig
     val tail : t -> (unit -> t or_error io) option
   end
 
+  module Key_selector : sig
+    type t
+
+    val create : key:string -> or_equal:bool -> offset:int -> t
+
+    val first_greater_than : ?offset:int -> string -> t
+
+    val first_greater_or_equal : ?offset:int -> string -> t
+
+    val last_less_than : ?offset:int -> string -> t
+
+    val last_less_or_equal : ?offset:int -> string -> t
+  end
+
   module Transaction : sig
     type t
 
