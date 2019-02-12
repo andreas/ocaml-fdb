@@ -116,9 +116,14 @@ let transaction_get_range =
     @-> int @-> fdb_bool_t @-> int @-> int @-> int @-> fdb_streaming_mode
     @-> int @-> fdb_bool_t @-> fdb_bool_t @-> returning fdb_future_t )
 
-let transaction_set =
+let transaction_set_bigstring =
   foreign "fdb_transaction_set"
     ( fdb_transaction_t @-> string @-> int @-> ptr char @-> int
+    @-> returning void )
+
+let transaction_set =
+  foreign "fdb_transaction_set"
+    ( fdb_transaction_t @-> string @-> int @-> string @-> int
     @-> returning void )
 
 let transaction_clear =

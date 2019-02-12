@@ -102,7 +102,9 @@ module Make (Io : IO) : sig
       -> last_key:string
       -> Range_result.t or_error io
 
-    val set : t -> key:string -> value:bigstring -> unit
+    val set : t -> key:string -> value:string -> unit
+
+    val set_bigstring : t -> key:string -> value:bigstring -> unit
 
     val commit : t -> unit or_error io
 

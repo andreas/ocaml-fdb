@@ -221,10 +221,13 @@ module Make (Io : IO) = struct
       | err, _ when err <> 0 -> return (Error error)
       | _ -> failwith "fdb_future_get_value broke invariant"
 
-    let set t ~key ~value =
+    let set_bigstring t ~key ~value =
       let length = Bigarray.Array1.dim value in
       let char_ptr = bigarray_start array1 value in
-      Raw.transaction_set t key (String.length key) char_ptr length
+      Raw.transaction_set_bigstring t key (String.length key) char_ptr length
+
+    let set t ~key ~value =
+      Raw.transaction_set t key (String.length key) value (String.length value)
 
     let commit t = Future.to_io (Raw.transaction_commit t) >>|? fun _ -> ()
 
