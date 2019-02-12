@@ -87,7 +87,9 @@ module Make (Io : IO) : sig
   module Transaction : sig
     type t
 
-    val get : ?snapshot:bool -> t -> key:string -> bigstring option or_error io
+    val get : ?snapshot:bool -> t -> key:string -> string option or_error io
+
+    val get_bigstring : ?snapshot:bool -> t -> key:string -> bigstring option or_error io
 
     val get_range :
          ?limit:int

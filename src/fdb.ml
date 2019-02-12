@@ -49,6 +49,8 @@ module Make (Io : IO) = struct
 
   let safe_deref ptr error = if error <> 0 then Error error else Ok !@ptr
 
+  let bool_to_int b = if b then 1 else 0
+
   module Future = struct
     let to_result t =
       let error = Raw.future_get_error t in
@@ -154,8 +156,8 @@ module Make (Io : IO) = struct
   module Transaction = struct
     type t = unit ptr
 
-    let get ?(snapshot = false) t ~key =
-      let snapshot_flag = if snapshot then 1 else 0 in
+    let get_bigstring ?(snapshot = false) t ~key =
+      let snapshot_flag = bool_to_int snapshot in
       Raw.transaction_get t key (String.length key) snapshot_flag
       |> Future.to_io
       >>=? fun future ->
@@ -165,7 +167,7 @@ module Make (Io : IO) = struct
       let error =
         Raw.future_get_value future present_ptr value_ptr length_ptr
       in
-      match (error, !@present_ptr, !@value_ptr) with
+      match error, !@present_ptr, !@value_ptr with
       | 0, 1, Some value ->
           let length = !@length_ptr in
           let bytes = bigarray_of_ptr array1 length Bigarray.char value in
@@ -173,6 +175,11 @@ module Make (Io : IO) = struct
       | 0, 0, _ -> return (Ok None)
       | err, _, _ when err <> 0 -> return (Error error)
       | _ -> failwith "fdb_future_get_value broke invariant"
+
+    let get ?snapshot t ~key =
+      get_bigstring ?snapshot t ~key >>|? function
+      | None -> None
+      | Some bs -> Some (Bigstringaf.to_string bs)
 
     let rec get_range ?(limit = 0) ?(target_bytes = 0) ?(snapshot = false)
         ?(reverse = false) t ~mode ~first_key ~last_key =

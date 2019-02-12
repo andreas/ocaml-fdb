@@ -25,6 +25,6 @@
  (name fdb)
  (public_name fdb)
  (modules raw fdb stubs_type)
- (libraries fdb.stubs ctypes.stubs ctypes.foreign bigarray)
+ (libraries fdb.stubs ctypes.stubs ctypes.foreign bigarray bigstringaf)
  (ocamlopt_flags (-cclib -lfdb_c))
  (flags (:standard -w -9-27)))
