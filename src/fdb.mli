@@ -123,6 +123,16 @@ module Make (Io : IO) : sig
       -> stop:Key_selector.t
       -> Range_result.t or_error io
 
+    val get_range_prefix :
+         ?limit:int
+      -> ?target_bytes:int
+      -> ?snapshot:bool
+      -> ?reverse:bool
+      -> ?mode:Streaming_mode.t
+      -> t
+      -> prefix:Key_selector.t
+      -> Range_result.t or_error io
+
     val clear : t -> key:string -> unit
 
     val clear_range : t -> start:string -> stop:string -> unit
@@ -164,6 +174,16 @@ module Make (Io : IO) : sig
       -> t
       -> start:Key_selector.t
       -> stop:Key_selector.t
+      -> Range_result.t or_error io
+
+    val get_range_prefix :
+         ?limit:int
+      -> ?target_bytes:int
+      -> ?snapshot:bool
+      -> ?reverse:bool
+      -> ?mode:Streaming_mode.t
+      -> t
+      -> prefix:Key_selector.t
       -> Range_result.t or_error io
 
     val clear : t -> key:string -> unit or_error io

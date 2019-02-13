@@ -296,6 +296,12 @@ module Make (Io : IO) = struct
       | err, _ when err <> 0 -> return (Error error)
       | _ -> failwith "fdb_future_get_value broke invariant"
 
+    let get_range_prefix ?limit ?target_bytes ?snapshot
+        ?reverse ?mode t ~prefix =
+      let start = prefix in
+      let stop = Key_selector.last_less_than (Tuple.strinc prefix.Key_selector.key) in
+      get_range ?limit ?target_bytes ?snapshot ?reverse ?mode t ~start ~stop
+
     let set_bigstring t ~key ~value =
       let length = Bigarray.Array1.dim value in
       let char_ptr = bigarray_start array1 value in
@@ -362,6 +368,9 @@ module Make (Io : IO) = struct
 
     let get_range ?limit ?target_bytes ?snapshot ?reverse ?mode t ~start ~stop =
       with_tx t ~f:(fun tx -> Transaction.get_range ?limit ?target_bytes ?snapshot ?reverse ?mode t ~start ~stop)
+
+    let get_range_prefix ?limit ?target_bytes ?snapshot ?reverse ?mode t ~prefix =
+      with_tx t ~f:(fun tx -> Transaction.get_range_prefix ?limit ?target_bytes ?snapshot ?reverse ?mode t ~prefix)
 
     let set t ~key ~value =
       with_tx t ~f:(fun tx -> return (Ok (Transaction.set t ~key ~value)))
