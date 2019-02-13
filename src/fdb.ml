@@ -302,6 +302,9 @@ module Make (Io : IO) = struct
     let set t ~key ~value =
       Raw.transaction_set t key (String.length key) value (String.length value)
 
+    let clear t ~key =
+      Raw.transaction_clear t key (String.length key)
+
     let commit t = Future.to_io (Raw.transaction_commit t) >>|? fun _ -> ()
 
     let rec commit_with_retry t ~f =

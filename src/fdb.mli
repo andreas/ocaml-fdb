@@ -111,6 +111,8 @@ module Make (Io : IO) : sig
       -> stop:Key_selector.t
       -> Range_result.t or_error io
 
+    val clear : t -> key:string -> unit
+
     val set : t -> key:string -> value:string -> unit
 
     val set_bigstring : t -> key:string -> value:bigstring -> unit
