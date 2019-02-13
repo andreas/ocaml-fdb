@@ -37,7 +37,7 @@ module Make (Io : IO) : sig
 
   type 'a or_error = ('a, Error.t) result
 
-  module StreamingMode : sig
+  module Streaming_mode : sig
     type t
 
     val iterator : unit -> t
@@ -72,7 +72,7 @@ module Make (Io : IO) : sig
 
     val get : t -> int -> Key_value.t
 
-    val tail : t -> (unit -> t or_error io) option
+    val tail : t -> t or_error io Lazy.t option
   end
 
   module Key_selector : sig
@@ -103,10 +103,10 @@ module Make (Io : IO) : sig
       -> ?target_bytes:int
       -> ?snapshot:bool
       -> ?reverse:bool
+      -> ?mode:Streaming_mode.t
       -> t
-      -> mode:StreamingMode.t
-      -> first_key:string
-      -> last_key:string
+      -> start:Key_selector.t
+      -> stop:Key_selector.t
       -> Range_result.t or_error io
 
     val set : t -> key:string -> value:string -> unit

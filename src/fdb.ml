@@ -92,7 +92,7 @@ module Make (Io : IO) = struct
 
   type 'a or_error = ('a, Error.t) result
 
-  module StreamingMode = struct
+  module Streaming_mode = struct
     type t =
       | Iterator of int
       | Small
@@ -124,6 +124,16 @@ module Make (Io : IO) = struct
     let want_all = Want_all
 
     let exact = Exact
+
+    let next t =
+      match t with
+      | Iterator i -> Iterator (i+1)
+      | _ -> t
+
+    let iteration t =
+      match t with
+      | Iterator i -> i
+      | _ -> 0
   end
 
   module Key_value = struct
@@ -148,7 +158,7 @@ module Make (Io : IO) = struct
   module Range_result = struct
     type t = {head: Raw.Key_value.t structure CArray.t; tail: tail}
 
-    and tail = (unit -> t or_error io) option
+    and tail = t or_error io Lazy.t option
 
     let length t = CArray.length t.head
 
@@ -222,42 +232,54 @@ module Make (Io : IO) = struct
       Io.return (safe_deref value_ptr error ~finaliser)
 
     let rec get_range ?(limit = 0) ?(target_bytes = 0) ?(snapshot = false)
-        ?(reverse = false) t ~mode ~first_key ~last_key =
-      let snapshot_flag = if snapshot then 1 else 0 in
-      let reverse_flag = if reverse then 1 else 0 in
-      let iteration =
-        match mode with StreamingMode.Iterator i -> i | _ -> 0
-      in
+        ?(reverse = false) ?(mode = Streaming_mode.Iterator 1) t ~start ~stop =
+      let snapshot_flag = bool_to_int snapshot in
+      let reverse_flag = bool_to_int reverse in
+      let start_or_equal_flag = bool_to_int start.Key_selector.or_equal in
+      let stop_or_equal_flag = bool_to_int stop.Key_selector.or_equal in
+      let iteration = Streaming_mode.iteration mode in
       let future =
-        Raw.transaction_get_range t first_key (String.length first_key) 1 0 last_key
-          (String.length last_key) 0 0 limit target_bytes
-          (StreamingMode.to_int mode)
+        Raw.transaction_get_range t start.key (String.length start.key)
+          start_or_equal_flag start.offset stop.key (String.length stop.key)
+          stop_or_equal_flag stop.offset limit target_bytes
+          (Streaming_mode.to_int mode)
           iteration snapshot_flag reverse_flag
       in
       Future.to_io future
       >>=? fun future ->
-      let finalise _ = Raw.future_destroy future in
-      let result_ptr = allocate ~finalise (ptr_opt Raw.Key_value.t) None in
+      let result_ptr = allocate (ptr_opt Raw.Key_value.t) None in
       let length_ptr = allocate int 0 in
       let more_ptr = allocate int 0 in
       let error =
         Raw.future_get_key_value_array future result_ptr length_ptr more_ptr
       in
-      match (error, !@result_ptr) with
+      match error, !@result_ptr with
       | 0, Some result ->
           let head = CArray.from_ptr result !@length_ptr in
+          let finaliser _ = Raw.future_destroy future in
+          Gc.finalise finaliser head;
           let tail =
-            if !@more_ptr = 0 then None
+            if !@more_ptr = 0 then
+              None
             else
-              Some
-                (fun () ->
+              let start', stop' =
+                if reverse then
                   let kv = CArray.get head (CArray.length head - 1) in
-                  let first_key' = Key_value.key kv in
-                  get_range ~snapshot ~reverse t ~mode ~first_key:first_key' ~last_key )
+                  {start with key=Key_value.key kv; or_equal=false}, stop
+                else
+                  let kv = CArray.get head 0 in
+                  start, {stop with key=Key_value.key kv; or_equal=false}
+              in
+              let mode' = Streaming_mode.next mode in
+              Some (
+                lazy (
+                  get_range ~snapshot ~reverse t ~mode:mode' ~start:start' ~stop:stop' 
+                )
+              )
           in
           return (Ok {Range_result.head; tail})
       | 0, None ->
-          failwith "fdb_future_get_value returned 0 error but pointer is null"
+          failwith "get_range: fdb_future_get_value returned 0 error but pointer is null"
       | err, _ when err <> 0 -> return (Error error)
       | _ -> failwith "fdb_future_get_value broke invariant"
 
