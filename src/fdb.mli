@@ -27,6 +27,18 @@ end
 module Make (Io : IO) : sig
   type 'a io = 'a Io.t
 
+  module Infix : sig
+    val ( >>= ) : 'a io -> ('a -> 'b io) -> 'b io
+
+    val ( >>| ) : 'a io -> ('a -> 'b) -> 'b io
+
+    val ( >>=? ) : ('a, 'e) result io -> ('a -> ('b, 'e) result io) -> ('b, 'e) result io
+
+    val ( >>|? ) : ('a, 'e) result io -> ('a -> 'b) -> ('b, 'e) result io
+
+    val return : 'a -> 'a io
+  end
+
   module Error : sig
     type t
 
