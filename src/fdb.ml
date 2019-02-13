@@ -348,6 +348,33 @@ module Make (Io : IO) = struct
 
     let with_tx t ~f =
       return (transaction t) >>=? fun tx -> Transaction.commit_with_retry tx ~f
+
+    let get ?snapshot t ~key =
+      with_tx t ~f:(fun tx -> Transaction.get ?snapshot t ~key)
+
+    let get_bigstring ?snapshot t ~key =
+      with_tx t ~f:(fun tx -> Transaction.get_bigstring ?snapshot t ~key)
+
+    let get_key ?snapshot t ~key_selector =
+      with_tx t ~f:(fun tx -> Transaction.get_key ?snapshot t ~key_selector)
+
+    let get_range ?limit ?target_bytes ?snapshot ?reverse ?mode t ~start ~stop =
+      with_tx t ~f:(fun tx -> Transaction.get_range ?limit ?target_bytes ?snapshot ?reverse ?mode t ~start ~stop)
+
+    let set t ~key ~value =
+      with_tx t ~f:(fun tx -> return (Ok (Transaction.set t ~key ~value)))
+
+    let set_bigstring t ~key ~value =
+      with_tx t ~f:(fun tx -> return (Ok (Transaction.set_bigstring t ~key ~value)))
+
+    let clear t ~key =
+      with_tx t ~f:(fun tx -> return (Ok (Transaction.clear tx ~key)))
+
+    let clear_range t ~start ~stop =
+      with_tx t ~f:(fun tx -> return (Ok (Transaction.clear_range tx ~start ~stop)))
+
+    let watch t ~key =
+      with_tx t ~f:(fun tx -> Transaction.watch tx ~key)
   end
 
   module Cluster = struct

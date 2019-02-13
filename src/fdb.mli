@@ -148,6 +148,33 @@ module Make (Io : IO) : sig
     val transaction : t -> Transaction.t or_error
 
     val with_tx : t -> f:(Transaction.t -> 'a or_error io) -> 'a or_error io
+
+    val get : ?snapshot:bool -> t -> key:string -> string option or_error io
+
+    val get_bigstring : ?snapshot:bool -> t -> key:string -> bigstring option or_error io
+
+    val get_key : ?snapshot:bool -> t -> key_selector:Key_selector.t -> string or_error io
+
+    val get_range :
+         ?limit:int
+      -> ?target_bytes:int
+      -> ?snapshot:bool
+      -> ?reverse:bool
+      -> ?mode:Streaming_mode.t
+      -> t
+      -> start:Key_selector.t
+      -> stop:Key_selector.t
+      -> Range_result.t or_error io
+
+    val clear : t -> key:string -> unit or_error io
+
+    val clear_range : t -> start:string -> stop:string -> unit or_error io
+
+    val watch : t -> key:string -> unit or_error io
+
+    val set : t -> key:string -> value:string -> unit or_error io
+
+    val set_bigstring : t -> key:string -> value:bigstring -> unit or_error io
   end
 
   module Cluster : sig
