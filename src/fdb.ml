@@ -308,6 +308,10 @@ module Make (Io : IO) = struct
     let clear_range t ~start ~stop =
       Raw.transaction_clear_range t start (String.length start) stop (String.length stop)
 
+    let watch t ~key =
+      Future.to_io (Raw.transaction_watch t key (String.length key))
+      >>|? fun _ -> ()
+
     let commit t = Future.to_io (Raw.transaction_commit t) >>|? fun _ -> ()
 
     let on_error t ~error_no =
