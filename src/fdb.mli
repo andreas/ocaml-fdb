@@ -131,6 +131,8 @@ module Make (Io : IO) : sig
 
     val set_bigstring : t -> key:string -> value:bigstring -> unit
 
+    val on_error : t -> error_no:int -> [`Retry] or_error io
+
     val commit : t -> unit or_error io
 
     val commit_with_retry : t -> f:(t -> 'a or_error io) -> 'a or_error io

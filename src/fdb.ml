@@ -310,16 +310,21 @@ module Make (Io : IO) = struct
 
     let commit t = Future.to_io (Raw.transaction_commit t) >>|? fun _ -> ()
 
+    let on_error t ~error_no =
+      Future.to_io (Raw.transaction_on_error t error_no) >>| function
+      | Ok _ -> Ok `Retry
+      | Error _ as err -> err
+
     let rec commit_with_retry t ~f =
       f t
       >>=? fun result ->
       commit t
       >>= function
       | Ok () -> return (Ok result)
-      | Error n -> (
-          Future.to_io (Raw.transaction_on_error t n)
+      | Error error_no -> (
+          on_error t ~error_no
           >>= function
-          | Ok _ -> commit_with_retry t ~f | Error _ as err -> return err )
+          | Ok `Retry -> commit_with_retry t ~f | Error _ as err -> return err )
   end
 
   module Database = struct
