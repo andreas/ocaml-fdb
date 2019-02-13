@@ -165,6 +165,17 @@ module Make (Io : IO) = struct
     let get t i = CArray.get t.head i
 
     let tail t = t.tail
+
+    let to_list t =
+      let rec to_list ?(memo=[]) t =
+        let memo = memo @ (CArray.to_list t.head) in
+        match t.tail with
+        | None -> return (Ok memo)
+        | Some tail ->
+          Lazy.force tail >>=? fun t' ->
+          to_list ~memo t'
+      in
+      to_list t
   end
 
   module Key_selector = struct

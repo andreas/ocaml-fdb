@@ -73,6 +73,8 @@ module Make (Io : IO) : sig
     val get : t -> int -> Key_value.t
 
     val tail : t -> t or_error io Lazy.t option
+
+    val to_list : t -> Key_value.t list or_error io
   end
 
   module Key_selector : sig
