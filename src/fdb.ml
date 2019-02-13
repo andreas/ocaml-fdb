@@ -26,6 +26,8 @@ module type IO = sig
   val read : 'a u -> 'a t
 end
 
+module Tuple = Tuple
+
 module Make (Io : IO) = struct
   type +'a io = 'a Io.t
 

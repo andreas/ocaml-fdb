@@ -193,3 +193,25 @@ module Make (Io : IO) : sig
     -> unit
     -> Database.t or_error io
 end
+
+module Tuple : sig
+  type t =
+    [ `Null
+    | `Bytes of string
+    | `Unicode of string
+    | `Nested of t
+    | `Int of int
+    | `Int64 of int64
+    | `Float of float
+    | `Bool of bool
+    | `Uuid of string
+    ] list
+
+  val pack : t -> string
+  val unpack : string -> t
+  val unpack_bigstring : bigstring -> t
+
+  val strinc : string -> string
+
+  val to_string : t -> string
+end
