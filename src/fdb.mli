@@ -113,6 +113,8 @@ module Make (Io : IO) : sig
 
     val clear : t -> key:string -> unit
 
+    val clear_range : t -> start:string -> stop:string -> unit
+
     val set : t -> key:string -> value:string -> unit
 
     val set_bigstring : t -> key:string -> value:bigstring -> unit
