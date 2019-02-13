@@ -344,7 +344,7 @@ module Make (Io : IO) = struct
   module Cluster = struct
     type t = unit ptr
 
-    let create cluster_file_path =
+    let create ?cluster_file_path () =
       let future = Raw.cluster_create cluster_file_path in
       Future.extract_value future ~f:Raw.future_get_cluster
   end
@@ -369,8 +369,8 @@ module Make (Io : IO) = struct
         network_io := None ;
         network
 
-  let open_database ?cluster_file ?(database_name = "DB") () =
+  let open_database ?cluster_file_path ?(database_name = "DB") () =
     run () ;
-    Cluster.create cluster_file
+    Cluster.create ?cluster_file_path ()
     >>=? fun cluster -> Database.create cluster database_name
 end

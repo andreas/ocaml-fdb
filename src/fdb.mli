@@ -149,7 +149,7 @@ module Make (Io : IO) : sig
   module Cluster : sig
     type t
 
-    val create : string option -> t or_error io
+    val create : ?cluster_file_path:string -> unit -> t or_error io
   end
 
   val run : unit -> unit
@@ -157,7 +157,7 @@ module Make (Io : IO) : sig
   val stop : unit -> unit io
 
   val open_database :
-       ?cluster_file:string
+       ?cluster_file_path:string
     -> ?database_name:string
     -> unit
     -> Database.t or_error io
