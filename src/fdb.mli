@@ -9,19 +9,23 @@ module type IO = sig
 
   type 'a u
 
+  type notification
+
   val return : 'a -> 'a t
 
   val map : 'a t -> f:('a -> 'b) -> 'b t
 
   val bind : 'a t -> f:('a -> 'b t) -> 'b t
 
-  val detach : (unit -> 'a) -> 'a t
-
   val create : unit -> 'a u
 
   val fill : 'a u -> 'a -> unit
 
   val read : 'a u -> 'a t
+
+  val make_notification : (unit -> unit) -> notification
+
+  val send_notification : notification -> unit
 end
 
 module Make (Io : IO) : sig

@@ -184,6 +184,7 @@ let future_is_ready =
 
 let future_set_callback =
   foreign "fdb_future_set_callback"
+    ~release_runtime_lock:true
     ( fdb_future_t
     @-> funptr ~runtime_lock:true callback_t
     @-> ptr void @-> returning fdb_error_t )

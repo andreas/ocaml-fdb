@@ -11,19 +11,23 @@ module type IO = sig
 
   type 'a u
 
+  type notification
+
   val return : 'a -> 'a t
 
   val map : 'a t -> f:('a -> 'b) -> 'b t
 
   val bind : 'a t -> f:('a -> 'b t) -> 'b t
 
-  val detach : (unit -> 'a) -> 'a t
-
   val create : unit -> 'a u
 
   val fill : 'a u -> 'a -> unit
 
   val read : 'a u -> 'a t
+
+  val make_notification : (unit -> unit) -> notification
+
+  val send_notification : notification -> unit
 end
 
 module Tuple = Tuple
@@ -66,10 +70,17 @@ module Make (Io : IO) = struct
 
     let to_io t =
       let ivar = Io.create () in
+      let result = ref (Error (-1)) in
+      let notification = Io.make_notification (fun () ->
+        Io.fill ivar !result
+      ) in
       let error =
-        Raw.future_set_callback t (fun t _ -> Io.fill ivar (to_result t)) null
+        Raw.future_set_callback t (fun t _ ->
+          result := to_result t;
+          Io.send_notification notification
+        ) null
       in
-      if error <> 0 then Io.fill ivar (Error error) ;
+      if error <> 0 then Io.fill ivar (Error error);
       Io.read ivar
 
     let extract_value t ~deps ~finaliser ~value =
