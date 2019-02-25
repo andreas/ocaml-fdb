@@ -282,11 +282,11 @@ module Make (Io : IO) = struct
             else
               let start', stop' =
                 if reverse then
-                  let kv = CArray.get head (CArray.length head - 1) in
-                  {start with key=Key_value.key kv; or_equal=false}, stop
-                else
                   let kv = CArray.get head 0 in
                   start, {stop with key=Key_value.key kv; or_equal=false}
+                else
+                  let kv = CArray.get head (CArray.length head - 1) in
+                  {start with key=Key_value.key kv; or_equal=false}, stop
               in
               let mode' = Streaming_mode.next mode in
               Some (
