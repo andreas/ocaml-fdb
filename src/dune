@@ -24,7 +24,7 @@
 (library
  (name fdb)
  (public_name fdb)
- (modules raw fdb stubs_type tuple)
+ (modules raw fdb stubs_type network tuple)
  (libraries fdb.stubs ctypes.stubs ctypes.foreign bigarray bigstringaf seq angstrom)
  (ocamlopt_flags (-cclib -lfdb_c))
  (flags (:standard -w -9-27)))

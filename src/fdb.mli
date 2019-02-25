@@ -203,15 +203,16 @@ module Make (Io : IO) : sig
     val create : ?cluster_file_path:string -> unit -> t or_error io
   end
 
-  val run : unit -> unit
-
-  val stop : unit -> unit io
-
   val open_database :
        ?cluster_file_path:string
     -> ?database_name:string
     -> unit
     -> Database.t or_error io
+end
+
+module Network : sig
+  val run : unit -> unit
+  val stop : unit -> unit
 end
 
 module Tuple : sig

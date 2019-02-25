@@ -28,6 +28,8 @@ end
 
 module Tuple = Tuple
 
+module Network = Network
+
 module Make (Io : IO) = struct
   type +'a io = 'a Io.t
 
@@ -46,8 +48,6 @@ module Make (Io : IO) = struct
   end
 
   open Infix
-
-  let check_error error = if error <> 0 then failwith (Raw.get_error error)
 
   let safe_deref ptr error ~finaliser =
     if error <> 0 then Error error
@@ -409,28 +409,9 @@ module Make (Io : IO) = struct
         ~value:Raw.future_get_cluster
   end
 
-  let network_io = ref None
-
-  let run () =
-    match !network_io with
-    | Some _ -> failwith "FDB loop already running"
-    | None ->
-        let api_version = Raw.get_max_api_version () in
-        check_error (Raw.select_api_version api_version api_version) ;
-        check_error (Raw.setup_network ()) ;
-        network_io :=
-          Some (Io.detach (fun () -> check_error (Raw.run_network ())))
-
-  let stop () =
-    match !network_io with
-    | None -> failwith "FDB loop not running"
-    | Some network ->
-        check_error (Raw.stop_network ()) ;
-        network_io := None ;
-        network
-
   let open_database ?cluster_file_path ?(database_name = "DB") () =
-    run () ;
+    Network.run ();
     Cluster.create ?cluster_file_path ()
-    >>=? fun cluster -> Database.create cluster database_name
+    >>=? fun cluster ->
+    Database.create cluster database_name
 end
