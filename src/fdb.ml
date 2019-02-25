@@ -72,15 +72,16 @@ module Make (Io : IO) = struct
       if error <> 0 then Io.fill ivar (Error error) ;
       Io.read ivar
 
-    let extract_value ?(deps=[]) t ~f =
+    let extract_value t ~deps ~finaliser ~value =
       to_io t
       >>=? fun t ->
-      let finaliser t_ptr =
-        Sys.opaque_identity ignore(deps);
-        Raw.future_destroy t_ptr
+      let finaliser x =
+        Sys.opaque_identity (ignore deps);
+        finaliser x
       in
       let value_ptr = allocate (ptr void) null in
-      let error = f t value_ptr in
+      let error = value t value_ptr in
+      Raw.future_destroy t;
       return (safe_deref value_ptr error ~finaliser)
   end
 
@@ -217,6 +218,10 @@ module Make (Io : IO) = struct
       | 0, 1, Some value ->
           let length = !@length_ptr in
           let bytes = bigarray_of_ptr array1 length Bigarray.char value in
+          let finaliser _ =
+            Raw.future_destroy future
+          in
+          Gc.finalise finaliser bytes;
           return (Ok (Some bytes))
       | 0, 0, _ -> return (Ok None)
       | err, _, _ when err <> 0 -> return (Error error)
@@ -344,10 +349,15 @@ module Make (Io : IO) = struct
 
     let create cluster name =
       Raw.database_create cluster name 2
-      |> Future.extract_value ~deps:[cluster] ~f:Raw.future_get_database
+      |> Future.extract_value
+        ~deps:[cluster]
+        ~finaliser:Raw.database_destroy
+        ~value:Raw.future_get_database
 
     let transaction t =
       let finaliser t_ptr = 
+        (* add dependency on database *)
+        Sys.opaque_identity (ignore t);
         Raw.transaction_destroy t_ptr
       in
       let transaction_ptr = allocate (ptr void) null in
@@ -392,8 +402,11 @@ module Make (Io : IO) = struct
     type t = unit ptr
 
     let create ?cluster_file_path () =
-      let future = Raw.cluster_create cluster_file_path in
-      Future.extract_value future ~f:Raw.future_get_cluster
+      Raw.cluster_create cluster_file_path
+      |> Future.extract_value
+        ~deps:[]
+        ~finaliser:Raw.cluster_destroy
+        ~value:Raw.future_get_cluster
   end
 
   let network_io = ref None
