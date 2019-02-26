@@ -10,6 +10,6 @@ before_install:
   - sudo dpkg -i foundationdb-clients_6.0.15-1_amd64.deb foundationdb-server_6.0.15-1_amd64.deb
 env:
   global:
-  - PINS="fdb:."
+  - PINS="fdb:. bigstringaf"
   matrix:
   - OCAML_VERSION="4.07" PACKAGE="fdb"
