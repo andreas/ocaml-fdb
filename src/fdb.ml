@@ -198,11 +198,11 @@ module Make (Io : IO) = struct
     let create ~key ~or_equal ~offset =
       { key; or_equal; offset }
 
-    let first_greater_than ?(offset = 0) key =
-      {key; or_equal= false; offset}
-
-    let first_greater_or_equal ?(offset = 0) key =
+    let first_greater_than ?(offset = 1) key =
       {key; or_equal= true; offset}
+
+    let first_greater_or_equal ?(offset = 1) key =
+      {key; or_equal= false; offset}
 
     let last_less_than ?(offset = 0) key =
       {key; or_equal= false; offset}
@@ -315,7 +315,7 @@ module Make (Io : IO) = struct
     let get_range_prefix ?limit ?target_bytes ?snapshot
         ?reverse ?mode t ~prefix =
       let start = prefix in
-      let stop = Key_selector.last_less_than (Tuple.strinc prefix.Key_selector.key) in
+      let stop = Key_selector.first_greater_or_equal (Tuple.strinc prefix.Key_selector.key) in
       get_range ?limit ?target_bytes ?snapshot ?reverse ?mode t ~start ~stop
 
     let set_bigstring t ~key ~value =
