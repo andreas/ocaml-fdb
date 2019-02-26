@@ -224,7 +224,7 @@ let future_get_string_array =
 let future_get_key_value_array =
   foreign "fdb_future_get_keyvalue_array"
     ( fdb_future_t
-    @-> ptr (ptr_opt Key_value.t)
+    @-> ptr (ptr Key_value.t)
     @-> ptr int @-> ptr fdb_bool_t @-> returning fdb_error_t )
 
 (* Errors *)

@@ -276,41 +276,38 @@ module Make (Io : IO) = struct
       in
       Future.to_io future
       >>=? fun future ->
-      let result_ptr = allocate (ptr_opt Raw.Key_value.t) None in
+      let result_ptr = allocate (ptr Raw.Key_value.t) (from_voidp Raw.Key_value.t null) in
       let length_ptr = allocate int 0 in
       let more_ptr = allocate int 0 in
       let error =
         Raw.future_get_key_value_array future result_ptr length_ptr more_ptr
       in
-      match error, !@result_ptr with
-      | 0, Some result ->
-          let head = CArray.from_ptr result !@length_ptr in
-          let finaliser _ = Raw.future_destroy future in
-          Gc.finalise finaliser head;
-          let tail =
-            if !@more_ptr = 0 then
-              None
-            else
-              let start', stop' =
-                if reverse then
-                  let kv = CArray.get head 0 in
-                  start, {stop with key=Key_value.key kv; or_equal=false}
-                else
-                  let kv = CArray.get head (CArray.length head - 1) in
-                  {start with key=Key_value.key kv; or_equal=false}, stop
-              in
-              let mode' = Streaming_mode.next mode in
-              Some (
-                lazy (
-                  get_range ~snapshot ~reverse t ~mode:mode' ~start:start' ~stop:stop' 
-                )
+      if error <> 0 then
+        return (Error error)
+      else
+        let head = CArray.from_ptr !@result_ptr !@length_ptr in
+        let finaliser _ = Raw.future_destroy future in
+        Gc.finalise finaliser head;
+        let tail =
+          if !@more_ptr = 0 then
+            None
+          else
+            let start', stop' =
+              if reverse then
+                let kv = CArray.get head 0 in
+                start, Key_selector.first_greater_or_equal (Key_value.key kv)
+              else
+                let kv = CArray.get head (CArray.length head - 1) in
+                Key_selector.first_greater_than (Key_value.key kv), stop
+            in
+            let mode' = Streaming_mode.next mode in
+            Some (
+              lazy (
+                get_range ~snapshot ~reverse t ~mode:mode' ~start:start' ~stop:stop'
               )
-          in
-          return (Ok {Range_result.head; tail})
-      | 0, None ->
-          failwith "get_range: fdb_future_get_value returned 0 error but pointer is null"
-      | err, _ when err <> 0 -> return (Error error)
-      | _ -> failwith "fdb_future_get_value broke invariant"
+            )
+        in
+        return (Ok {Range_result.head; tail})
 
     let get_range_prefix ?limit ?target_bytes ?snapshot
         ?reverse ?mode t ~prefix =
