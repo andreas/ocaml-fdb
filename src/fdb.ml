@@ -2,8 +2,8 @@ open Ctypes
 
 type bigstring =
   ( char
-  , CamlinternalBigarray.int8_unsigned_elt
-  , CamlinternalBigarray.c_layout )
+  , Bigarray.int8_unsigned_elt
+  , Bigarray.c_layout )
   Bigarray.Array1.t
 
 module type IO = sig
