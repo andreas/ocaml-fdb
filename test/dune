@@ -1,0 +1,10 @@
+(executable
+ (libraries fdb bigstringaf lwt.unix)
+ (name bindingtester)
+ (flags (:standard -w -8)))
+
+(alias
+ (name runtest)
+ (package fdb)
+ (deps (:test bindingtester.exe))
+ (action (run %{test} test_spec 600)))
