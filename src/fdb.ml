@@ -224,6 +224,19 @@ module Make (Io : IO) = struct
       to_list t
   end
 
+  module Watch = struct
+    type t = {
+      future : Future.t;
+      io : unit or_error io Lazy.t;
+    }
+
+    let cancel t =
+      Raw.future_cancel t.future
+
+    let to_io t =
+      Lazy.force t.io
+  end
+
   module Transaction = struct
     type t = transaction
 
@@ -343,8 +356,10 @@ module Make (Io : IO) = struct
       Raw.transaction_clear_range t start (String.length start) stop (String.length stop)
 
     let watch t ~key =
-      Future.to_io (Raw.transaction_watch t key (String.length key))
-      >>|? fun _ -> ()
+      let future = Raw.transaction_watch t key (String.length key) in
+      Gc.finalise Raw.future_destroy future;
+      let io = lazy (Future.to_io future >>|? fun _ -> ()) in
+      { Watch.future; io }
 
     let commit t = Future.to_io (Raw.transaction_commit t) >>|? fun _ -> ()
 
@@ -416,7 +431,7 @@ module Make (Io : IO) = struct
       with_tx t ~f:(fun tx -> return (Ok (Transaction.clear_range tx ~start ~stop)))
 
     let watch t ~key =
-      with_tx t ~f:(fun tx -> Transaction.watch tx ~key)
+      with_tx t ~f:(fun tx -> return (Ok (Transaction.watch tx ~key)))
   end
 
   module Cluster = struct

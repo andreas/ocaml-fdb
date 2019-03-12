@@ -140,6 +140,14 @@ module Make (Io : IO) : sig
     val to_list : t -> Key_value.t list or_error io
   end
 
+  module Watch : sig
+    type t
+
+    val cancel : t -> unit
+
+    val to_io : t -> unit or_error io
+  end
+
   module Transaction : sig
     type t = transaction
 
@@ -174,7 +182,7 @@ module Make (Io : IO) : sig
 
     val clear_range : t -> start:string -> stop:string -> unit
 
-    val watch : t -> key:string -> unit or_error io
+    val watch : t -> key:string -> Watch.t
 
     val set : t -> key:string -> value:string -> unit
 
@@ -227,7 +235,7 @@ module Make (Io : IO) : sig
 
     val clear_range : t -> start:string -> stop:string -> unit or_error io
 
-    val watch : t -> key:string -> unit or_error io
+    val watch : t -> key:string -> Watch.t or_error io
 
     val set : t -> key:string -> value:string -> unit or_error io
 
