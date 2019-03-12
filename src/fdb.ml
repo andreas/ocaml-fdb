@@ -165,6 +165,8 @@ module Make (Io : IO) = struct
   let bool_to_int b = if b then 1 else 0
 
   module Future = struct
+    type t = unit ptr
+
     let to_result t =
       let error = Raw.future_get_error t in
       if error <> 0 then Error error else Ok t
@@ -172,15 +174,17 @@ module Make (Io : IO) = struct
     let to_io t =
       let ivar = Io.create () in
       let result = ref (Error (-1)) in
-      let notification = Io.make_notification (fun () ->
+      let callback = ref (fun _ _ -> assert false) in
+      let notification = (Io.make_notification (fun () ->
+        (* prevent callback from being GC'ed *)
+        Sys.opaque_identity (ignore callback);
         Io.fill ivar !result
-      ) in
-      let error =
-        Raw.future_set_callback t (fun t _ ->
-          result := to_result t;
-          Io.send_notification notification
-        ) null
-      in
+      )) in
+      callback := (fun t _ ->
+        result := to_result t;
+        Io.send_notification notification
+      );
+      let error = Raw.future_set_callback t !callback null in
       if error <> 0 then Io.fill ivar (Error error);
       Io.read ivar
 
