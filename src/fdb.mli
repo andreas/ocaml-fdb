@@ -54,6 +54,32 @@ module Streaming_mode : sig
   val exact : t
 end
 
+module Atomic_op : sig
+  type t
+
+  val add : t
+
+  val bit_and : t
+
+  val bit_or : t
+
+  val bit_xor : t
+
+  val append : t
+
+  val max : t
+
+  val min : t
+
+  val set_versionstamped_key : t
+
+  val set_verstionstamped_value : t
+
+  val byte_min : t
+
+  val byte_max : t
+end
+
 module Key_value : sig
   type t
 
@@ -188,6 +214,8 @@ module Make (Io : IO) : sig
 
     val set_bigstring : t -> key:string -> value:bigstring -> unit
 
+    val atomic_op : t -> key:string -> op:Atomic_op.t -> param:string -> unit
+
     val on_error : t -> error_no:int -> [`Retry] or_error io
 
     val commit : t -> unit or_error io
@@ -240,6 +268,8 @@ module Make (Io : IO) : sig
     val set : t -> key:string -> value:string -> unit or_error io
 
     val set_bigstring : t -> key:string -> value:bigstring -> unit or_error io
+
+    val atomic_op : t -> key:string -> op:Atomic_op.t -> param:string -> unit or_error io
   end
 
   module Cluster : sig

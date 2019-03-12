@@ -86,6 +86,32 @@ module Streaming_mode = struct
     | _ -> 0
 end
 
+module Atomic_op = struct
+  type t = int
+
+  let add = 2
+
+  let bit_and = 6
+
+  let bit_or = 7
+
+  let bit_xor = 8
+
+  let append = 9
+
+  let max = 12
+
+  let min = 13
+
+  let set_versionstamped_key = 14
+
+  let set_verstionstamped_value = 15
+
+  let byte_min = 16
+
+  let byte_max = 17
+end
+
 module Key_value = struct
   type t = (Raw.Key_value.t, [`Struct]) structured
 
@@ -357,6 +383,9 @@ module Make (Io : IO) = struct
     let clear_range t ~start ~stop =
       Raw.transaction_clear_range t start (String.length start) stop (String.length stop)
 
+    let atomic_op t ~key ~op ~param =
+      Raw.transaction_atomic_op t key (String.length key) param (String.length param) op
+
     let watch t ~key =
       let future = Raw.transaction_watch t key (String.length key) in
       Gc.finalise Raw.future_destroy future;
@@ -425,6 +454,9 @@ module Make (Io : IO) = struct
 
     let set_bigstring t ~key ~value =
       with_tx t ~f:(fun tx -> return (Ok (Transaction.set_bigstring tx ~key ~value)))
+
+    let atomic_op t ~key ~op ~param =
+      with_tx t ~f:(fun tx -> return (Ok (Transaction.atomic_op tx ~key ~op ~param)))
 
     let clear t ~key =
       with_tx t ~f:(fun tx -> return (Ok (Transaction.clear tx ~key)))
