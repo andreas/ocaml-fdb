@@ -34,8 +34,109 @@ module Tuple = Tuple
 
 module Network = Network
 
+module Error = struct
+  type t = int
+
+  let to_string t = Raw.get_error t
+
+  let error_code t = t
+end
+
+module Streaming_mode = struct
+  type t =
+    | Iterator of int
+    | Small
+    | Medium
+    | Large
+    | Serial
+    | Want_all
+    | Exact
+
+  let to_int = function
+    | Want_all -> -2
+    | Iterator _ -> -1
+    | Exact -> 0
+    | Small -> 1
+    | Medium -> 2
+    | Large -> 3
+    | Serial -> 4
+
+  let iterator () = Iterator 1
+
+  let small = Small
+
+  let medium = Medium
+
+  let large = Large
+
+  let serial = Serial
+
+  let want_all = Want_all
+
+  let exact = Exact
+
+  let next t =
+    match t with
+    | Iterator i -> Iterator (i+1)
+    | _ -> t
+
+  let iteration t =
+    match t with
+    | Iterator i -> i
+    | _ -> 0
+end
+
+module Key_value = struct
+  type t = (Raw.Key_value.t, [`Struct]) structured
+
+  let key t =
+    let length = getf t Raw.Key_value.fdbkv_key_length in
+    let key_ptr = getf t Raw.Key_value.fdbkv_key in
+    string_from_ptr key_ptr ~length
+
+  let key_bigstring t =
+    let length = getf t Raw.Key_value.fdbkv_key_length in
+    let key_ptr = getf t Raw.Key_value.fdbkv_key in
+    bigarray_of_ptr array1 length Bigarray.char key_ptr
+
+  let value t =
+    let length = getf t Raw.Key_value.fdbkv_value_length in
+    let value_ptr = getf t Raw.Key_value.fdbkv_value in
+    string_from_ptr value_ptr ~length
+
+  let value_bigstring t =
+    let length = getf t Raw.Key_value.fdbkv_value_length in
+    let value_ptr = getf t Raw.Key_value.fdbkv_value in
+    bigarray_of_ptr array1 length Bigarray.char value_ptr
+end
+
+module Key_selector = struct
+  type t = {key: string; or_equal: bool; offset: int}
+
+  let create ~key ~or_equal ~offset =
+    { key; or_equal; offset }
+
+  let first_greater_than ?(offset = 1) key =
+    {key; or_equal= true; offset}
+
+  let first_greater_or_equal ?(offset = 1) key =
+    {key; or_equal= false; offset}
+
+  let last_less_than ?(offset = 0) key =
+    {key; or_equal= false; offset}
+
+  let last_less_or_equal ?(offset = 0) key =
+    {key; or_equal= true; offset}
+end
+
+type transaction = unit ptr
+type database = unit ptr
+type cluster = unit ptr
+
 module Make (Io : IO) = struct
   type +'a io = 'a Io.t
+
+  type 'a or_error = ('a, Error.t) result
 
   module Infix = struct
     let ( >>= ) t f = Io.bind t ~f
@@ -96,79 +197,6 @@ module Make (Io : IO) = struct
       return (safe_deref value_ptr error ~finaliser)
   end
 
-  module Error = struct
-    type t = int
-
-    let to_string t = Raw.get_error t
-
-    let error_code t = t
-  end
-
-  type 'a or_error = ('a, Error.t) result
-
-  module Streaming_mode = struct
-    type t =
-      | Iterator of int
-      | Small
-      | Medium
-      | Large
-      | Serial
-      | Want_all
-      | Exact
-
-    let to_int = function
-      | Want_all -> -2
-      | Iterator _ -> -1
-      | Exact -> 0
-      | Small -> 1
-      | Medium -> 2
-      | Large -> 3
-      | Serial -> 4
-
-    let iterator () = Iterator 1
-
-    let small = Small
-
-    let medium = Medium
-
-    let large = Large
-
-    let serial = Serial
-
-    let want_all = Want_all
-
-    let exact = Exact
-
-    let next t =
-      match t with
-      | Iterator i -> Iterator (i+1)
-      | _ -> t
-
-    let iteration t =
-      match t with
-      | Iterator i -> i
-      | _ -> 0
-  end
-
-  module Key_value = struct
-    type t = (Raw.Key_value.t, [`Struct]) structured
-
-    let key t =
-      let length = getf t Raw.Key_value.fdbkv_key_length in
-      let key_ptr = getf t Raw.Key_value.fdbkv_key in
-      string_from_ptr key_ptr ~length
-
-    let value t =
-      let length = getf t Raw.Key_value.fdbkv_value_length in
-      let value_ptr = getf t Raw.Key_value.fdbkv_value in
-      string_from_ptr value_ptr ~length
-
-    let value_bigstring t =
-      let length = getf t Raw.Key_value.fdbkv_value_length in
-      let value_ptr = getf t Raw.Key_value.fdbkv_value in
-      bigarray_of_ptr array1 length Bigarray.char value_ptr
-  end
-
   module Range_result = struct
     type t = {head: Raw.Key_value.t structure CArray.t; tail: tail}
 
@@ -192,27 +220,8 @@ module Make (Io : IO) = struct
       to_list t
   end
 
-  module Key_selector = struct
-    type t = {key: string; or_equal: bool; offset: int}
-
-    let create ~key ~or_equal ~offset =
-      { key; or_equal; offset }
-
-    let first_greater_than ?(offset = 1) key =
-      {key; or_equal= true; offset}
-
-    let first_greater_or_equal ?(offset = 1) key =
-      {key; or_equal= false; offset}
-
-    let last_less_than ?(offset = 0) key =
-      {key; or_equal= false; offset}
-
-    let last_less_or_equal ?(offset = 0) key =
-      {key; or_equal= true; offset}
-  end
-
   module Transaction = struct
-    type t = unit ptr
+    type t = transaction
 
     let get_bigstring ?(snapshot = false) t ~key =
       let snapshot_flag = bool_to_int snapshot in
@@ -353,7 +362,7 @@ module Make (Io : IO) = struct
   end
 
   module Database = struct
-    type t = unit ptr
+    type t = database
 
     let create cluster name =
       Raw.database_create cluster name 2
@@ -407,7 +416,7 @@ module Make (Io : IO) = struct
   end
 
   module Cluster = struct
-    type t = unit ptr
+    type t = cluster
 
     let create ?cluster_file_path () =
       Raw.cluster_create cluster_file_path

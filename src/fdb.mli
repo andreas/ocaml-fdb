@@ -28,8 +28,91 @@ module type IO = sig
   val send_notification : notification -> unit
 end
 
+module Error : sig
+  type t
+
+  val to_string : t -> string
+
+  val error_code : t -> int
+end
+
+module Streaming_mode : sig
+  type t
+
+  val iterator : unit -> t
+
+  val small : t
+
+  val medium : t
+
+  val large : t
+
+  val serial : t
+
+  val want_all : t
+
+  val exact : t
+end
+
+module Key_value : sig
+  type t
+
+  val key : t -> string
+
+  val key_bigstring : t -> bigstring
+
+  val value : t -> string
+
+  val value_bigstring : t -> bigstring
+end
+
+module Key_selector : sig
+  type t
+
+  val create : key:string -> or_equal:bool -> offset:int -> t
+
+  val first_greater_than : ?offset:int -> string -> t
+
+  val first_greater_or_equal : ?offset:int -> string -> t
+
+  val last_less_than : ?offset:int -> string -> t
+
+  val last_less_or_equal : ?offset:int -> string -> t
+end
+
+module Network : sig
+  val run : unit -> unit
+  val stop : unit -> unit
+end
+
+module Tuple : sig
+  type t =
+    [ `Null
+    | `Bytes of string
+    | `Unicode of string
+    | `Nested of t
+    | `Int of int
+    | `Int64 of int64
+    | `Float of float
+    | `Bool of bool
+    | `Uuid of string
+    ] list
+
+  val pack : t -> string
+  val unpack : string -> t
+  val unpack_bigstring : bigstring -> t
+
+  val strinc : string -> string
+
+  val to_string : t -> string
+end
+
+type transaction
+type database
+type cluster
+
 module Make (Io : IO) : sig
-  type 'a io = 'a Io.t
+  type 'a io
 
   module Infix : sig
     val ( >>= ) : 'a io -> ('a -> 'b io) -> 'b io
@@ -43,43 +126,7 @@ module Make (Io : IO) : sig
     val return : 'a -> 'a io
   end
 
-  module Error : sig
-    type t
-
-    val to_string : t -> string
-
-    val error_code : t -> int
-  end
-
   type 'a or_error = ('a, Error.t) result
-
-  module Streaming_mode : sig
-    type t
-
-    val iterator : unit -> t
-
-    val small : t
-
-    val medium : t
-
-    val large : t
-
-    val serial : t
-
-    val want_all : t
-
-    val exact : t
-  end
-
-  module Key_value : sig
-    type t
-
-    val key : t -> string
-
-    val value : t -> string
-
-    val value_bigstring : t -> bigstring
-  end
 
   module Range_result : sig
     type t
@@ -93,22 +140,8 @@ module Make (Io : IO) : sig
     val to_list : t -> Key_value.t list or_error io
   end
 
-  module Key_selector : sig
-    type t
-
-    val create : key:string -> or_equal:bool -> offset:int -> t
-
-    val first_greater_than : ?offset:int -> string -> t
-
-    val first_greater_or_equal : ?offset:int -> string -> t
-
-    val last_less_than : ?offset:int -> string -> t
-
-    val last_less_or_equal : ?offset:int -> string -> t
-  end
-
   module Transaction : sig
-    type t
+    type t = transaction
 
     val get : ?snapshot:bool -> t -> key:string -> string option or_error io
 
@@ -155,7 +188,7 @@ module Make (Io : IO) : sig
   end
 
   module Database : sig
-    type t
+    type t = database
 
     val create : t -> string -> t or_error io
 
@@ -202,7 +235,7 @@ module Make (Io : IO) : sig
   end
 
   module Cluster : sig
-    type t
+    type t = cluster
 
     val create : ?cluster_file_path:string -> unit -> t or_error io
   end
@@ -212,31 +245,4 @@ module Make (Io : IO) : sig
     -> ?database_name:string
     -> unit
     -> Database.t or_error io
-end
-
-module Network : sig
-  val run : unit -> unit
-  val stop : unit -> unit
-end
-
-module Tuple : sig
-  type t =
-    [ `Null
-    | `Bytes of string
-    | `Unicode of string
-    | `Nested of t
-    | `Int of int
-    | `Int64 of int64
-    | `Float of float
-    | `Bool of bool
-    | `Uuid of string
-    ] list
-
-  val pack : t -> string
-  val unpack : string -> t
-  val unpack_bigstring : bigstring -> t
-
-  val strinc : string -> string
-
-  val to_string : t -> string
 end
