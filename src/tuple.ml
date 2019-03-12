@@ -44,8 +44,8 @@ module Decoder = struct
 
   let int ~sign ~len =
     Unsafe.take len (fun bs ~off ~len ->
-    Bigstringaf.unsafe_blit_from_string "00000000" ~src_off:0 int_buf ~dst_off:0 ~len:8;
-    Bigstringaf.blit bs ~src_off:off int_buf ~dst_off:0 ~len;
+    Bigstringaf.unsafe_blit_from_string "\000\000\000\000\000\000\000\000" ~src_off:0 int_buf ~dst_off:0 ~len:8;
+    Bigstringaf.blit bs ~src_off:off int_buf ~dst_off:(8-len) ~len;
     let n = Bigstringaf.get_int64_be int_buf 0 in
     let result = if sign = `Positive then n else Int64.(sub n (shift_left 1L len)) in
     if Int64.of_int min_int < result && result < Int64.of_int max_int then
@@ -61,7 +61,8 @@ module Decoder = struct
     | '\002' -> string ~buf:string_buf
     | '\x0c' .. '\x13' as c -> int ~sign:`Negative ~len:(0x14 - (Char.code c))
     | '\x14' -> return (`Int 0)
-    | '\x15' .. '\x1c' as c -> int ~sign:`Positive ~len:((Char.code c) - 0x14)
+    | '\x15' .. '\x1c' as c ->
+      int ~sign:`Positive ~len:((Char.code c) - 0x14)
     | '\x26' -> return (`Bool false)
     | '\x27' -> return (`Bool true)
     | c -> 
@@ -95,17 +96,28 @@ module Encoder = struct
 
   let bytes buf s =
     Buffer.add_char buf '\x01';
-    Buffer.add_string buf s;
+    String.iter (fun c ->
+      Buffer.add_char buf c;
+      if c = '\x00' then Buffer.add_char buf '\xff'
+    ) s;
     Buffer.add_char buf '\x00'
 
   let unicode buf s =
     bytes buf s
 
   let int buf n =
-    failwith "int encoder not implemented yet"
+    Buffer.add_char buf '\x18';
+    for i = 3 downto 0 do
+      let c = Char.chr (n lsr (8*i) land 0xFF) in
+      Buffer.add_char buf c
+    done
 
   let int64 buf n =
-    failwith "int64 encoder not implemented yet"
+    Buffer.add_char buf '\x1c';
+    for i = 7 downto 0 do
+      let c = Char.chr Int64.(logand (shift_right n (8*i)) 0xFFL |> to_int) in
+      Buffer.add_char buf c
+    done
 
   let float buf f =
     failwith "int64 encoder not implemented yet"
@@ -120,12 +132,14 @@ module Encoder = struct
     failwith "uuid encoder not implemented yet"
 
   let rec nested buf t =
+    Buffer.add_char buf '\x05';
     List.iter (function
     | `Null ->
       Buffer.add_char buf '\x00';
       Buffer.add_char buf '\xFF'
     | x -> elem buf x
-  ) t
+    ) t;
+    Buffer.add_char buf '\x00';
 
   and elem buf = function
     | `Null -> null buf
