@@ -201,7 +201,7 @@ let future_get_version =
 
 let future_get_key =
   foreign "fdb_future_get_key"
-    (fdb_future_t @-> ptr string @-> ptr int @-> returning fdb_error_t)
+    (fdb_future_t @-> ptr (ptr char) @-> ptr int @-> returning fdb_error_t)
 
 let future_get_cluster =
   foreign "fdb_future_get_cluster"

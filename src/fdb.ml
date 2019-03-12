@@ -276,15 +276,17 @@ module Make (Io : IO) = struct
       Raw.transaction_get_key t key (String.length key) or_equal_flag key_selector.offset snapshot_flag
       |> Future.to_io
       >>=? fun future ->
-      let value_ptr = allocate string "" in
+      let value_ptr = allocate (ptr char) (from_voidp char null) in
       let length_ptr = allocate int 0 in
       let error =
         Raw.future_get_key future value_ptr length_ptr
       in
-      let finaliser _ =
-        Raw.future_destroy future
-      in
-      Io.return (safe_deref value_ptr error ~finaliser)
+      if error <> 0 then
+        return (Error error)
+      else
+        let value = string_from_ptr !@value_ptr ~length:!@length_ptr in
+        Gc.finalise (fun _ -> Raw.future_destroy future) value;
+        return (Ok value)
 
     let rec get_range ?(limit = 0) ?(target_bytes = 0) ?(snapshot = false)
         ?(reverse = false) ?(mode = Streaming_mode.Iterator 1) t ~start ~stop =
