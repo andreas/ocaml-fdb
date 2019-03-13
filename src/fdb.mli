@@ -138,7 +138,7 @@ type database
 type cluster
 
 module Make (Io : IO) : sig
-  type 'a io
+  type 'a io = 'a Io.t
 
   module Infix : sig
     val ( >>= ) : 'a io -> ('a -> 'b io) -> 'b io
