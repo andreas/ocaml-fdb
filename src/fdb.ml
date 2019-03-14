@@ -37,7 +37,7 @@ module Network = Network
 module Error = struct
   type t = int
 
-  let to_string t = Raw.get_error t
+  let to_string t = Fdb_ffi.get_error t
 
   let error_code t = t
 end
@@ -113,26 +113,26 @@ module Atomic_op = struct
 end
 
 module Key_value = struct
-  type t = (Raw.Key_value.t, [`Struct]) structured
+  type t = (Fdb_ffi.Key_value.t, [`Struct]) structured
 
   let key t =
-    let length = getf t Raw.Key_value.fdbkv_key_length in
-    let key_ptr = getf t Raw.Key_value.fdbkv_key in
+    let length = getf t Fdb_ffi.Key_value.fdbkv_key_length in
+    let key_ptr = getf t Fdb_ffi.Key_value.fdbkv_key in
     string_from_ptr key_ptr ~length
 
   let key_bigstring t =
-    let length = getf t Raw.Key_value.fdbkv_key_length in
-    let key_ptr = getf t Raw.Key_value.fdbkv_key in
+    let length = getf t Fdb_ffi.Key_value.fdbkv_key_length in
+    let key_ptr = getf t Fdb_ffi.Key_value.fdbkv_key in
     bigarray_of_ptr array1 length Bigarray.char key_ptr
 
   let value t =
-    let length = getf t Raw.Key_value.fdbkv_value_length in
-    let value_ptr = getf t Raw.Key_value.fdbkv_value in
+    let length = getf t Fdb_ffi.Key_value.fdbkv_value_length in
+    let value_ptr = getf t Fdb_ffi.Key_value.fdbkv_value in
     string_from_ptr value_ptr ~length
 
   let value_bigstring t =
-    let length = getf t Raw.Key_value.fdbkv_value_length in
-    let value_ptr = getf t Raw.Key_value.fdbkv_value in
+    let length = getf t Fdb_ffi.Key_value.fdbkv_value_length in
+    let value_ptr = getf t Fdb_ffi.Key_value.fdbkv_value in
     bigarray_of_ptr array1 length Bigarray.char value_ptr
 end
 
@@ -194,7 +194,7 @@ module Make (Io : IO) = struct
     type t = unit ptr
 
     let to_result t =
-      let error = Raw.future_get_error t in
+      let error = Fdb_ffi.future_get_error t in
       if error <> 0 then Error error else Ok t
 
     let to_io t =
@@ -210,7 +210,7 @@ module Make (Io : IO) = struct
         result := to_result t;
         Io.send_notification notification
       );
-      let error = Raw.future_set_callback t !callback null in
+      let error = Fdb_ffi.future_set_callback t !callback null in
       if error <> 0 then Io.fill ivar (Error error);
       Io.read ivar
 
@@ -223,12 +223,12 @@ module Make (Io : IO) = struct
       in
       let value_ptr = allocate (ptr void) null in
       let error = value t value_ptr in
-      Raw.future_destroy t;
+      Fdb_ffi.future_destroy t;
       return (safe_deref value_ptr error ~finaliser)
   end
 
   module Range_result = struct
-    type t = {head: Raw.Key_value.t structure CArray.t; tail: tail}
+    type t = {head: Fdb_ffi.Key_value.t structure CArray.t; tail: tail}
 
     and tail = t or_error io Lazy.t option
 
@@ -257,7 +257,7 @@ module Make (Io : IO) = struct
     }
 
     let cancel t =
-      Raw.future_cancel t.future
+      Fdb_ffi.future_cancel t.future
 
     let to_io t =
       Lazy.force t.io
@@ -268,21 +268,21 @@ module Make (Io : IO) = struct
 
     let get_bigstring ?(snapshot = false) t ~key =
       let snapshot_flag = bool_to_int snapshot in
-      Raw.transaction_get t key (String.length key) snapshot_flag
+      Fdb_ffi.transaction_get t key (String.length key) snapshot_flag
       |> Future.to_io
       >>=? fun future ->
-      let present_ptr = allocate Raw.fdb_bool_t 0 in
+      let present_ptr = allocate Fdb_ffi.fdb_bool_t 0 in
       let value_ptr = allocate (ptr_opt char) None in
       let length_ptr = allocate int 0 in
       let error =
-        Raw.future_get_value future present_ptr value_ptr length_ptr
+        Fdb_ffi.future_get_value future present_ptr value_ptr length_ptr
       in
       match error, !@present_ptr, !@value_ptr with
       | 0, 1, Some value ->
           let length = !@length_ptr in
           let bytes = bigarray_of_ptr array1 length Bigarray.char value in
           let finaliser _ =
-            Raw.future_destroy future
+            Fdb_ffi.future_destroy future
           in
           Gc.finalise finaliser bytes;
           return (Ok (Some bytes))
@@ -299,19 +299,19 @@ module Make (Io : IO) = struct
       let snapshot_flag = bool_to_int snapshot in
       let key = key_selector.Key_selector.key in
       let or_equal_flag = bool_to_int key_selector.or_equal in
-      Raw.transaction_get_key t key (String.length key) or_equal_flag key_selector.offset snapshot_flag
+      Fdb_ffi.transaction_get_key t key (String.length key) or_equal_flag key_selector.offset snapshot_flag
       |> Future.to_io
       >>=? fun future ->
       let value_ptr = allocate (ptr char) (from_voidp char null) in
       let length_ptr = allocate int 0 in
       let error =
-        Raw.future_get_key future value_ptr length_ptr
+        Fdb_ffi.future_get_key future value_ptr length_ptr
       in
       if error <> 0 then
         return (Error error)
       else
         let value = string_from_ptr !@value_ptr ~length:!@length_ptr in
-        Gc.finalise (fun _ -> Raw.future_destroy future) value;
+        Gc.finalise (fun _ -> Fdb_ffi.future_destroy future) value;
         return (Ok value)
 
     let rec get_range ?(limit = 0) ?(target_bytes = 0) ?(snapshot = false)
@@ -322,7 +322,7 @@ module Make (Io : IO) = struct
       let stop_or_equal_flag = bool_to_int stop.Key_selector.or_equal in
       let iteration = Streaming_mode.iteration mode in
       let future =
-        Raw.transaction_get_range t start.key (String.length start.key)
+        Fdb_ffi.transaction_get_range t start.key (String.length start.key)
           start_or_equal_flag start.offset stop.key (String.length stop.key)
           stop_or_equal_flag stop.offset limit target_bytes
           (Streaming_mode.to_int mode)
@@ -330,17 +330,17 @@ module Make (Io : IO) = struct
       in
       Future.to_io future
       >>=? fun future ->
-      let result_ptr = allocate (ptr Raw.Key_value.t) (from_voidp Raw.Key_value.t null) in
+      let result_ptr = allocate (ptr Fdb_ffi.Key_value.t) (from_voidp Fdb_ffi.Key_value.t null) in
       let length_ptr = allocate int 0 in
       let more_ptr = allocate int 0 in
       let error =
-        Raw.future_get_key_value_array future result_ptr length_ptr more_ptr
+        Fdb_ffi.future_get_key_value_array future result_ptr length_ptr more_ptr
       in
       if error <> 0 then
         return (Error error)
       else
         let head = CArray.from_ptr !@result_ptr !@length_ptr in
-        let finaliser _ = Raw.future_destroy future in
+        let finaliser _ = Fdb_ffi.future_destroy future in
         Gc.finalise finaliser head;
         let tail =
           if !@more_ptr = 0 then
@@ -372,30 +372,30 @@ module Make (Io : IO) = struct
     let set_bigstring t ~key ~value =
       let length = Bigarray.Array1.dim value in
       let char_ptr = bigarray_start array1 value in
-      Raw.transaction_set_bigstring t key (String.length key) char_ptr length
+      Fdb_ffi.transaction_set_bigstring t key (String.length key) char_ptr length
 
     let set t ~key ~value =
-      Raw.transaction_set t key (String.length key) value (String.length value)
+      Fdb_ffi.transaction_set t key (String.length key) value (String.length value)
 
     let clear t ~key =
-      Raw.transaction_clear t key (String.length key)
+      Fdb_ffi.transaction_clear t key (String.length key)
 
     let clear_range t ~start ~stop =
-      Raw.transaction_clear_range t start (String.length start) stop (String.length stop)
+      Fdb_ffi.transaction_clear_range t start (String.length start) stop (String.length stop)
 
     let atomic_op t ~key ~op ~param =
-      Raw.transaction_atomic_op t key (String.length key) param (String.length param) op
+      Fdb_ffi.transaction_atomic_op t key (String.length key) param (String.length param) op
 
     let watch t ~key =
-      let future = Raw.transaction_watch t key (String.length key) in
-      Gc.finalise Raw.future_destroy future;
+      let future = Fdb_ffi.transaction_watch t key (String.length key) in
+      Gc.finalise Fdb_ffi.future_destroy future;
       let io = lazy (Future.to_io future >>|? fun _ -> ()) in
       { Watch.future; io }
 
-    let commit t = Future.to_io (Raw.transaction_commit t) >>|? fun _ -> ()
+    let commit t = Future.to_io (Fdb_ffi.transaction_commit t) >>|? fun _ -> ()
 
     let on_error t ~error_no =
-      Future.to_io (Raw.transaction_on_error t error_no) >>| function
+      Future.to_io (Fdb_ffi.transaction_on_error t error_no) >>| function
       | Ok _ -> Ok `Retry
       | Error _ as err -> err
 
@@ -415,20 +415,20 @@ module Make (Io : IO) = struct
     type t = database
 
     let create cluster name =
-      Raw.database_create cluster name 2
+      Fdb_ffi.database_create cluster name 2
       |> Future.extract_value
         ~deps:[cluster]
-        ~finaliser:Raw.database_destroy
-        ~value:Raw.future_get_database
+        ~finaliser:Fdb_ffi.database_destroy
+        ~value:Fdb_ffi.future_get_database
 
     let transaction t =
-      let finaliser t_ptr = 
+      let finaliser t_ptr =
         (* add dependency on database *)
         Sys.opaque_identity (ignore t);
-        Raw.transaction_destroy t_ptr
+        Fdb_ffi.transaction_destroy t_ptr
       in
       let transaction_ptr = allocate (ptr void) null in
-      let error = Raw.transaction_create t transaction_ptr in
+      let error = Fdb_ffi.transaction_create t transaction_ptr in
       safe_deref transaction_ptr error ~finaliser
 
     let with_tx t ~f =
@@ -444,10 +444,10 @@ module Make (Io : IO) = struct
       with_tx t ~f:(fun tx -> Transaction.get_key ?snapshot tx ~key_selector)
 
     let get_range ?limit ?target_bytes ?snapshot ?reverse ?mode t ~start ~stop =
-      with_tx t ~f:(fun tx -> Transaction.get_range ?limit ?target_bytes ?snapshot ?reverse ?mode t ~start ~stop)
+      with_tx t ~f:(fun tx -> Transaction.get_range ?limit ?target_bytes ?snapshot ?reverse ?mode tx ~start ~stop)
 
     let get_range_prefix ?limit ?target_bytes ?snapshot ?reverse ?mode t ~prefix =
-      with_tx t ~f:(fun tx -> Transaction.get_range_prefix ?limit ?target_bytes ?snapshot ?reverse ?mode t ~prefix)
+      with_tx t ~f:(fun tx -> Transaction.get_range_prefix ?limit ?target_bytes ?snapshot ?reverse ?mode tx ~prefix)
 
     let set t ~key ~value =
       with_tx t ~f:(fun tx -> return (Ok (Transaction.set tx ~key ~value)))
@@ -472,11 +472,11 @@ module Make (Io : IO) = struct
     type t = cluster
 
     let create ?cluster_file_path () =
-      Raw.cluster_create cluster_file_path
+      Fdb_ffi.cluster_create cluster_file_path
       |> Future.extract_value
         ~deps:[]
-        ~finaliser:Raw.cluster_destroy
-        ~value:Raw.future_get_cluster
+        ~finaliser:Fdb_ffi.cluster_destroy
+        ~value:Fdb_ffi.future_get_cluster
   end
 
   let open_database ?cluster_file_path ?(database_name = "DB") () =

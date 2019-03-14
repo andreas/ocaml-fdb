@@ -1,0 +1,27 @@
+(library
+ (name fdb_binding_ffi)
+ (public_name fdb.binding.ffi)
+ (modules fdb_binding_ffi)
+ (libraries fdb.types))
+
+(executable
+ (name stubgen)
+ (modules stubgen)
+ (libraries fdb.binding.ffi fdb_types ctypes.stubs ctypes))
+
+(rule
+ (targets ml_stubs.ml)
+ (deps (:stubgen stubgen.exe))
+ (action (with-stdout-to %{targets} (run %{stubgen} -ml))))
+
+(rule
+ (targets c_stubs.c)
+ (deps (:stubgen stubgen.exe))
+ (action (with-stdout-to %{targets} (run %{stubgen} -c))))
+
+(library
+ (name fdb_ffi)
+ (public_name fdb.ffi)
+ (modules fdb_ffi ml_stubs)
+ (c_names c_stubs)
+ (libraries fdb.binding.ffi ctypes.stubs ctypes))
