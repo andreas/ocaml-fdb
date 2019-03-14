@@ -19,6 +19,7 @@ depends: [
   "bigstringaf" {>= "0.4.0"}
   "angstrom" {>= "0.11.0"}
   "alcotest" {with-test}
+  "lwt" {with-test}
 ]
 
 synopsis: "Client bindings for FoundationDB"
