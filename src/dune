@@ -2,5 +2,4 @@
  (name fdb)
  (public_name fdb)
  (modules fdb network tuple)
- (libraries fdb.ffi ctypes bigarray bigstringaf angstrom)
- (ocamlopt_flags (-cclib -lfdb_c)))
+ (libraries fdb.ffi ctypes bigarray bigstringaf angstrom))
