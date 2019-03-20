@@ -208,6 +208,8 @@ module Make (Io : IO) : sig
       -> prefix:Key_selector.t
       -> Range_result.t or_error io
 
+    val get_read_version : t -> int64 or_error io
+
     val clear : t -> key:string -> unit
 
     val clear_range : t -> start:string -> stop:string -> unit

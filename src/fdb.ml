@@ -369,6 +369,17 @@ module Make (Io : IO) = struct
       let stop = Key_selector.first_greater_or_equal (Tuple.strinc prefix.Key_selector.key) in
       get_range ?limit ?target_bytes ?snapshot ?reverse ?mode t ~start ~stop
 
+    let get_read_version t =
+      Fdb_ffi.transaction_get_read_version t
+      |> Future.to_io
+      >>=? fun future ->
+      let value_ptr = allocate int64_t 0L in
+      let err = Fdb_ffi.future_get_version future value_ptr in
+      if err = 0 then
+        return (Ok !@value_ptr)
+      else
+        return (Error err)
+
     let set_bigstring t ~key ~value =
       let length = Bigarray.Array1.dim value in
       let char_ptr = bigarray_start array1 value in
