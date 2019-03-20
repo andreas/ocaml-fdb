@@ -4,6 +4,10 @@
  (libraries fdb lwt.unix)
  (ocamlopt_flags (-cclib -lfdb_c)))
 
+(test
+  (name fuzz_tuple)
+  (libraries fdb crowbar)
+  (modules fuzz_tuple))
 
 (test
   (name test_tuple)
