@@ -130,7 +130,11 @@ module Tuple : sig
 
   val strinc : string -> string
 
+  val pp : Format.formatter -> t -> unit
   val to_string : t -> string
+
+  val cmp : t -> t -> int
+  val eq : t -> t -> bool
 end
 
 type transaction
