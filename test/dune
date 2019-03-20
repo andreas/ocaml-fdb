@@ -4,3 +4,8 @@
  (libraries fdb lwt.unix)
  (ocamlopt_flags (-cclib -lfdb_c)))
 
+
+(test
+  (name test_tuple)
+  (modules test_tuple)
+  (libraries alcotest fdb))
