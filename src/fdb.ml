@@ -399,6 +399,9 @@ module Make (Io : IO) = struct
       | Ok _ -> Ok `Retry
       | Error _ as err -> err
 
+    let reset t =
+      Fdb_ffi.transaction_reset t
+
     let rec commit_with_retry t ~f =
       f t
       >>=? fun result ->
