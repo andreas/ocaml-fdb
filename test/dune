@@ -1,11 +1,6 @@
-(executable
+(test
  (name test_lwt)
  (modules test_lwt)
  (libraries fdb lwt.unix)
  (ocamlopt_flags (-cclib -lfdb_c)))
 
-(alias
- (name runtest)
- (package fdb)
- (deps (:test test_lwt.exe))
- (action (run %{test} -v)))
