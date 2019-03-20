@@ -24,5 +24,4 @@
  (public_name fdb.ffi)
  (modules fdb_ffi ml_stubs)
  (c_names c_stubs)
- (libraries fdb.binding.ffi ctypes.stubs ctypes)
- (ocamlopt_flags (-cclib -lfdb_c)))
+ (libraries fdb.binding.ffi ctypes.stubs ctypes))

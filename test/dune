@@ -1,8 +1,7 @@
 (test
  (name test_lwt)
  (modules test_lwt)
- (libraries fdb lwt.unix)
- (ocamlopt_flags (-cclib -lfdb_c)))
+ (libraries fdb lwt.unix))
 
 (test
   (name fuzz_tuple)

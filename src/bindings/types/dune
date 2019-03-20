@@ -25,4 +25,4 @@
  (public_name fdb.types)
  (modules fdb_types stub_types)
  (libraries fdb.binding.types ctypes.stubs ctypes)
- (flags (:standard -w -9-27)))
+ (flags (:standard -w -9-27 -cclib -lfdb_c)))
