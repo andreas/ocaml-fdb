@@ -20,6 +20,7 @@ depends: [
   "angstrom" {>= "0.11.0"}
   "alcotest" {with-test}
   "lwt" {with-test}
+  "crowbar" {with-test}
 ]
 
 synopsis: "Client bindings for FoundationDB"
