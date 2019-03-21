@@ -1,4 +1,4 @@
-(test
+(executable
  (name test_lwt)
  (modules test_lwt)
  (libraries fdb lwt.unix))
