@@ -13,3 +13,6 @@ env:
   - PINS="fdb:. crowbar"
   matrix:
   - OCAML_VERSION="4.07" PACKAGE="fdb"
+  - DISTRO="ubuntu-18.10" OCAML_VERSION="4.07" PACKAGE="fdb"
+  - DISTRO="ubuntu-18.04" OCAML_VERSION="4.07" PACKAGE="fdb"
+  - DISTRO="ubuntu-16.04" OCAML_VERSION="4.07" PACKAGE="fdb"
